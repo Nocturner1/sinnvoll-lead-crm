@@ -212,7 +212,10 @@ body {
 .results-count { margin-left: auto; font-size: 12px; color: var(--text-3); font-weight: 600; letter-spacing: .03em; }
 
 /* ─── TABELLE ──────────────────────────────────────────────────────────────── */
-.table-scroll { overflow-x: auto; }
+/*  overflow-x: auto auf dem Wrapper bricht position:sticky auf der Y-Achse –
+    deshalb scrollt die ganze Seite horizontal statt nur der Wrapper.          */
+body { overflow-x: auto; }
+.table-scroll { }
 table { width: 100%; border-collapse: collapse; min-width: 1080px; }
 
 /* THEAD – top wird per JS als CSS-Variable --sticky-top gesetzt */
@@ -873,17 +876,20 @@ function setSyncIndicator(msg) {
   document.getElementById('syncIndicator').textContent = msg;
 }
 
-// ─── STICKY OFFSET – dynamisch messen ────────────────────────────────────────
+// ─── STICKY OFFSET – zuverlässig mit ResizeObserver ──────────────────────────
 function updateStickyOffset() {
-  const header    = document.querySelector('.header');
-  const filterbar = document.querySelector('.filterbar');
-  const offset    = (header?.offsetHeight || 56) + (filterbar?.offsetHeight || 51);
-  document.documentElement.style.setProperty('--sticky-top', offset + 'px');
+  const h = document.querySelector('.header')?.getBoundingClientRect().height || 56;
+  const f = document.querySelector('.filterbar')?.getBoundingClientRect().height || 51;
+  document.documentElement.style.setProperty('--sticky-top', Math.ceil(h + f) + 'px');
 }
+// ResizeObserver reagiert auf jede Grössenänderung von Header oder Filterbar
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(updateStickyOffset);
+  document.querySelectorAll('.header, .filterbar').forEach(el => ro.observe(el));
+}
+// Zusätzlich bei Resize und unmittelbar nach Paint
 window.addEventListener('resize', updateStickyOffset);
-// Nach dem ersten Render messen (Fonts, Wrapping können Höhe ändern)
-window.addEventListener('load', updateStickyOffset);
-document.fonts?.ready?.then(updateStickyOffset);
+requestAnimationFrame(() => requestAnimationFrame(updateStickyOffset));
 
 // ─── DARK / LIGHT THEME ───────────────────────────────────────────────────────
 function applyTheme(dark) {
@@ -903,7 +909,7 @@ function toggleTheme() {
 })();
 
 // ─── START ────────────────────────────────────────────────────────────────────
-init().then(() => updateStickyOffset());
+init().then(() => requestAnimationFrame(updateStickyOffset));
 </script>
 </body>
 </html>
