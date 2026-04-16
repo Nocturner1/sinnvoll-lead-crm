@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>■● Sinnvoll – Lead CRM</title>
+<style>
+/* ─── RESET & BASE ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --black:   #0A0A0A;
+  --white:   #FFFFFF;
+  --gray-50: #F7F7F7;
+  --gray-100:#EFEFEF;
+  --gray-200:#E0E0E0;
+  --gray-400:#A0A0A0;
+  --gray-600:#606060;
+
+  /* Status-Akzente */
+  --s-neu:        #0A0A0A;
+  --s-kontaktiert:#1A56DB;
+  --s-gespraech:  #C27A00;
+  --s-angebot:    #B35C00;
+  --s-abschluss:  #166534;
+  --s-nein:       #9B1C1C;
+
+  --radius-sm: 4px;
+  --radius:    8px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+}
+html { font-size: 14px; }
+body {
+  background: var(--white);
+  color: var(--black);
+  font-family: 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ─── SCROLLBAR ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--gray-50); }
+::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 3px; }
+
+/* ─── HEADER ───────────────────────────────────────────────────────────────── */
+.header {
+  background: var(--black);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 28px;
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+.logo {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -.5px;
+  white-space: nowrap;
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.logo-mark { font-size: 18px; opacity: .9; }
+.logo-divider { width: 1px; height: 24px; background: rgba(255,255,255,.2); margin: 0 4px; }
+.logo-sub { font-size: 11px; font-weight: 400; color: rgba(255,255,255,.5); letter-spacing: .08em; text-transform: uppercase; }
+
+/* STATS CHIPS im Header */
+.header-stats { display: flex; gap: 6px; margin-left: 8px; }
+.h-chip {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 11px;
+  color: rgba(255,255,255,.8);
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.h-chip:hover, .h-chip.active { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.4); }
+.h-chip .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.h-chip strong { color: var(--white); font-weight: 700; }
+
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.user-btn {
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+  color: var(--white);
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+  letter-spacing: .02em;
+}
+.user-btn:hover { background: rgba(255,255,255,.2); }
+.export-btn {
+  background: var(--white);
+  color: var(--black);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: .03em;
+  transition: opacity .15s;
+}
+.export-btn:hover { opacity: .85; }
+.sync-indicator { font-size: 11px; color: rgba(255,255,255,.4); }
+
+/* ─── FILTER-BAR ───────────────────────────────────────────────────────────── */
+.filterbar {
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 10px 28px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  position: sticky;
+  top: 56px;
+  z-index: 190;
+}
+.search-wrap { position: relative; }
+.search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--gray-400); pointer-events: none; }
+.filterbar input[type=text] {
+  background: var(--white);
+  border: 1.5px solid var(--gray-200);
+  color: var(--black);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px 7px 32px;
+  font-size: 13px;
+  outline: none;
+  width: 240px;
+  transition: border-color .15s;
+  font-family: inherit;
+}
+.filterbar input[type=text]:focus { border-color: var(--black); }
+.filter-sel {
+  background: var(--white);
+  border: 1.5px solid var(--gray-200);
+  color: var(--black);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s;
+  appearance: none;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23606060' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.filter-sel:focus { border-color: var(--black); }
+.results-count { margin-left: auto; font-size: 12px; color: var(--gray-400); font-weight: 600; letter-spacing: .03em; }
+
+/* ─── TABELLE ──────────────────────────────────────────────────────────────── */
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 1080px; }
+
+/* THEAD */
+thead th {
+  background: var(--gray-50);
+  border-bottom: 2px solid var(--black);
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--gray-600);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  position: sticky;
+  top: 107px; /* header(56) + filterbar(~51) */
+  z-index: 100;
+}
+thead th:hover { color: var(--black); }
+thead th.sorted { color: var(--black); }
+.sort-arr { display: inline-block; margin-left: 4px; opacity: .3; font-size: 10px; }
+thead th.sorted .sort-arr { opacity: 1; }
+
+/* TBODY */
+tbody tr {
+  border-bottom: 1px solid var(--gray-100);
+  border-left: 3px solid transparent; /* verhindert Layout-Shift */
+  transition: background .08s;
+}
+tbody tr:hover { background: var(--gray-50); }
+
+/* Status-Akzentstreifen links */
+tbody tr.s-Kontaktiert    { border-left-color: var(--s-kontaktiert); }
+tbody tr.s-In-Gespräch    { border-left-color: var(--s-gespraech); }
+tbody tr.s-Angebot         { border-left-color: var(--s-angebot); }
+tbody tr.s-Abschluss       { border-left-color: var(--s-abschluss); }
+tbody tr.s-Kein-Interesse  { border-left-color: var(--s-nein); opacity: .45; }
+
+td { padding: 9px 14px; vertical-align: middle; }
+
+/* RANG */
+td.col-rank { color: var(--gray-400); font-size: 11px; font-weight: 700; width: 40px; text-align: right; padding-right: 6px; }
+
+/* SCORE */
+td.col-score { width: 72px; }
+.score-num { font-size: 18px; font-weight: 900; letter-spacing: -.5px; line-height: 1; }
+.score-num.high  { color: var(--black); }
+.score-num.mid   { color: var(--gray-600); }
+.score-num.low   { color: var(--gray-400); }
+.score-bar { height: 3px; background: var(--gray-200); border-radius: 2px; margin-top: 5px; }
+.score-fill { height: 100%; border-radius: 2px; background: var(--black); }
+
+/* NAME */
+td.col-name { min-width: 200px; max-width: 260px; }
+.name-link { font-weight: 700; font-size: 13px; color: var(--black); text-decoration: none; line-height: 1.3; display: block; }
+.name-link:hover { text-decoration: underline; }
+.name-sub { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+/* BRANCHE-BADGE */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  border: 1px solid;
+}
+.badge-Reisebüro        { color: #1A56DB; border-color: #BFDBFE; background: #EFF6FF; }
+.badge-Eventagentur     { color: #7E22CE; border-color: #E9D5FF; background: #FAF5FF; }
+.badge-Busunternehmen   { color: #166534; border-color: #BBF7D0; background: #F0FDF4; }
+.badge-Reiseveranstalter{ color: #92400E; border-color: #FDE68A; background: #FFFBEB; }
+.badge-MICE-Agentur     { color: #9B1C1C; border-color: #FECACA; background: #FEF2F2; }
+.badge-Marketingagentur { color: #0369A1; border-color: #BAE6FD; background: #F0F9FF; }
+.badge-Sonstige         { color: var(--gray-600); border-color: var(--gray-200); background: var(--gray-50); }
+
+/* BEWERTUNG */
+.stars-row { display: flex; align-items: center; gap: 4px; }
+.star-filled { color: #F59E0B; font-size: 11px; }
+.star-empty  { color: var(--gray-200); font-size: 11px; }
+.reviews-cnt { font-size: 11px; color: var(--gray-400); }
+
+/* WEBSITE */
+td.col-web { max-width: 160px; }
+.web-link { font-size: 12px; color: var(--black); text-decoration: none; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.web-link:hover { text-decoration: underline; }
+.tel-txt { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+/* STATUS-SELECT */
+.status-sel {
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  min-width: 138px;
+  font-family: inherit;
+  transition: border-color .15s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23606060' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 26px;
+}
+.ss-Neu            { background: var(--white);   color: var(--gray-600);      border-color: var(--gray-200); }
+.ss-Kontaktiert    { background: #EFF6FF;         color: var(--s-kontaktiert); border-color: #BFDBFE; }
+.ss-In-Gespräch    { background: #FFFBEB;         color: var(--s-gespraech);  border-color: #FDE68A; }
+.ss-Angebot        { background: #FFF7ED;         color: var(--s-angebot);    border-color: #FDBA74; }
+.ss-Abschluss      { background: #F0FDF4;         color: var(--s-abschluss);  border-color: #BBF7D0; }
+.ss-Kein-Interesse { background: #FEF2F2;         color: var(--s-nein);       border-color: #FECACA; }
+.status-sel:focus  { border-color: var(--black); }
+
+/* BEARBEITER */
+.kontakt-inp {
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--gray-600);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 8px;
+  width: 100px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color .15s, background .15s;
+}
+.kontakt-inp:focus { border-color: var(--gray-200); background: var(--white); color: var(--black); }
+.kontakt-inp::placeholder { color: var(--gray-200); font-weight: 400; }
+
+/* NOTIZ */
+td.col-notiz { min-width: 220px; max-width: 300px; }
+.notiz-ta {
+  width: 100%;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--black);
+  font-size: 12px;
+  padding: 5px 8px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  line-height: 1.5;
+  min-height: 34px;
+  transition: border-color .15s, background .15s;
+  display: block;
+}
+.notiz-ta:focus { border-color: var(--gray-200); background: var(--white); }
+.notiz-ta::placeholder { color: var(--gray-200); }
+
+/* DATUM */
+.updated-txt { font-size: 10px; color: var(--gray-400); white-space: nowrap; }
+
+/* ─── TOAST ────────────────────────────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  background: var(--black); color: var(--white);
+  border-radius: var(--radius); padding: 10px 18px;
+  font-size: 13px; font-weight: 600;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity .25s, transform .25s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* ─── USER MODAL ───────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 500;
+  display: none; align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--white);
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  padding: 32px;
+  width: 380px;
+  max-width: 92vw;
+}
+.modal h2 { font-size: 20px; font-weight: 900; margin-bottom: 6px; }
+.modal p  { font-size: 13px; color: var(--gray-600); margin-bottom: 20px; }
+.modal input {
+  width: 100%; border: 2px solid var(--black); border-radius: var(--radius-sm);
+  padding: 10px 14px; font-size: 14px; font-weight: 600; font-family: inherit;
+  outline: none; margin-bottom: 14px;
+}
+.modal-btns { display: flex; gap: 10px; }
+.btn-primary {
+  background: var(--black); color: var(--white); border: 2px solid var(--black);
+  border-radius: var(--radius-sm); padding: 9px 20px; font-size: 13px;
+  font-weight: 800; cursor: pointer; letter-spacing: .04em; transition: opacity .15s;
+  font-family: inherit;
+}
+.btn-primary:hover { opacity: .85; }
+.btn-secondary {
+  background: var(--white); color: var(--black); border: 2px solid var(--gray-200);
+  border-radius: var(--radius-sm); padding: 9px 20px; font-size: 13px;
+  font-weight: 700; cursor: pointer; font-family: inherit; transition: border-color .15s;
+}
+.btn-secondary:hover { border-color: var(--black); }
+
+/* ─── EMPTY STATE ──────────────────────────────────────────────────────────── */
+.empty-state { padding: 80px 40px; text-align: center; }
+.empty-state h3 { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
+.empty-state p  { color: var(--gray-400); }
+
+/* ─── LOADING ──────────────────────────────────────────────────────────────── */
+.loading { padding: 60px; text-align: center; }
+.spinner {
+  width: 28px; height: 28px; border: 3px solid var(--gray-200);
+  border-top-color: var(--black); border-radius: 50%;
+  animation: spin .7s linear infinite; margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 768px) {
+  .header { padding: 0 16px; }
+  .header-stats { display: none; }
+  .filterbar { padding: 8px 16px; }
+  .filterbar input[type=text] { width: 100%; }
+  .table-scroll { padding: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <span class="logo-mark">■●</span>
+    <span class="logo-divider"></span>
+    <div>
+      <div style="font-size:14px;font-weight:900;letter-spacing:-.3px;">Sinnvoll</div>
+      <div class="logo-sub">Lead CRM</div>
+    </div>
+  </div>
+  <div class="header-stats" id="headerStats"></div>
+  <div class="header-right">
+    <span class="sync-indicator" id="syncIndicator"></span>
+    <button class="user-btn" id="userBtn" onclick="openUserModal()">👤 <span id="userLabel">Ich</span></button>
+    <button class="export-btn" onclick="exportCsv()">↓ CSV</button>
+  </div>
+</header>
+
+<!-- FILTER-BAR -->
+<div class="filterbar">
+  <div class="search-wrap">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="6"/><path d="M15 15l-3.5-3.5"/></svg>
+    <input type="text" id="searchInput" placeholder="Name, Stadt, Website suchen…" oninput="filterAndRender()">
+  </div>
+  <select class="filter-sel" id="fBranche" onchange="filterAndRender()">
+    <option value="">Alle Branchen</option>
+    <option>Reisebüro</option>
+    <option>Eventagentur</option>
+    <option>Reiseveranstalter</option>
+    <option>Busunternehmen</option>
+    <option>MICE-Agentur</option>
+    <option>Marketingagentur</option>
+    <option>Sonstige</option>
+  </select>
+  <select class="filter-sel" id="fLand" onchange="filterAndRender()">
+    <option value="">🌍 Alle Länder</option>
+    <option value="CH">🇨🇭 Schweiz</option>
+    <option value="DE">🇩🇪 Deutschland</option>
+  </select>
+  <select class="filter-sel" id="fStatus" onchange="filterAndRender()">
+    <option value="">Alle Status</option>
+    <option>Neu</option>
+    <option>Kontaktiert</option>
+    <option>In Gespräch</option>
+    <option>Angebot</option>
+    <option>Abschluss</option>
+    <option>Kein Interesse</option>
+  </select>
+  <select class="filter-sel" id="fScore" onchange="filterAndRender()">
+    <option value="0">Alle Scores</option>
+    <option value="15">⭐ Top-Leads (≥ 15)</option>
+    <option value="10">Gut (≥ 10)</option>
+    <option value="5">Mittel (≥ 5)</option>
+  </select>
+  <div class="results-count" id="resultsCount"></div>
+</div>
+
+<!-- TABELLE -->
+<div class="table-scroll">
+  <div class="loading" id="loadingState">
+    <div class="spinner"></div>
+    <div style="color:var(--gray-400);font-size:13px;">Leads werden geladen…</div>
+  </div>
+  <table id="mainTable" style="display:none">
+    <thead>
+      <tr>
+        <th onclick="sortBy('rank')">#<span class="sort-arr" id="s-rank">↕</span></th>
+        <th onclick="sortBy('score')">Score<span class="sort-arr" id="s-score">↓</span></th>
+        <th onclick="sortBy('name')">Unternehmen<span class="sort-arr" id="s-name">↕</span></th>
+        <th onclick="sortBy('branche')">Branche<span class="sort-arr" id="s-branche">↕</span></th>
+        <th onclick="sortBy('land')">Land<span class="sort-arr" id="s-land">↕</span></th>
+        <th onclick="sortBy('bewertung')">Google ★<span class="sort-arr" id="s-bewertung">↕</span></th>
+        <th>Kontakt</th>
+        <th>Status</th>
+        <th style="width:100px">Bearbeiter</th>
+        <th class="col-notiz">Notiz</th>
+        <th onclick="sortBy('updatedAt')" style="width:90px">Zuletzt<span class="sort-arr" id="s-updatedAt">↕</span></th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div class="empty-state" id="emptyState" style="display:none">
+    <h3>Keine Leads gefunden</h3>
+    <p>Andere Filter ausprobieren?</p>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- USER MODAL -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal">
+    <h2>Wer bist du?</h2>
+    <p>Dein Name wird bei Statusänderungen und Notizen gespeichert – sichtbar für alle Teammitglieder.</p>
+    <input type="text" id="nameInput" placeholder="Vor- und Nachname" maxlength="40" autocomplete="off">
+    <div class="modal-btns">
+      <button class="btn-primary" onclick="saveUser()">Speichern</button>
+      <button class="btn-secondary" onclick="closeUserModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<script src="leads_data.js"></script>
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const KV_BUCKET = '9etvhexcvoi6NxBy2Yxdh7';
+const KV_BASE   = `https://kvdb.io/${KV_BUCKET}`;
+const MAX_SCORE = 30;
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let crmState   = {};          // id → { status, notiz, kontaktBy, updatedAt }
+let filtered   = [];
+let sortCol    = 'score';
+let sortDir    = -1;
+let saveTimers = {};
+let currentUser = localStorage.getItem('sg_user') || '';
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function init() {
+  updateUserLabel();
+  if (!currentUser) openUserModal();
+
+  // CRM-State laden
+  try {
+    const res = await fetch(KV_BASE + '/state');
+    if (res.ok) {
+      const text = await res.text();
+      crmState = text ? JSON.parse(text) : {};
+    }
+  } catch(e) { console.warn('KV offline, nutze localStorage:', e); }
+
+  // localStorage als Fallback / Merge
+  const local = localStorage.getItem('sg_crm');
+  if (local) {
+    const parsed = JSON.parse(local);
+    // Merge: remote gewinnt bei Konflikten (neuerer updatedAt)
+    Object.entries(parsed).forEach(([id, v]) => {
+      if (!crmState[id] || v.updatedAt > (crmState[id].updatedAt || '')) {
+        crmState[id] = v;
+      }
+    });
+  }
+
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('mainTable').style.display = 'table';
+
+  filterAndRender();
+  updateHeaderStats();
+  setInterval(syncFromRemote, 30000); // Auto-Sync alle 30s
+}
+
+// ─── LEADS MIT CRM-STATE MERGEN ───────────────────────────────────────────────
+function getLeads() {
+  return LEADS_DATA.map(l => ({
+    ...l,
+    status:    crmState[l.id]?.status    || 'Neu',
+    notiz:     crmState[l.id]?.notiz     || '',
+    kontaktBy: crmState[l.id]?.kontaktBy || '',
+    updatedAt: crmState[l.id]?.updatedAt || '',
+  }));
+}
+
+// ─── FILTER ───────────────────────────────────────────────────────────────────
+function filterAndRender() {
+  const q      = document.getElementById('searchInput').value.toLowerCase().trim();
+  const branch = document.getElementById('fBranche').value;
+  const land   = document.getElementById('fLand').value;
+  const status = document.getElementById('fStatus').value;
+  const minSc  = parseFloat(document.getElementById('fScore').value) || 0;
+
+  let leads = getLeads();
+  if (branch) leads = leads.filter(l => l.branche === branch);
+  if (land)   leads = leads.filter(l => l.land === land);
+  if (status) leads = leads.filter(l => l.status === status);
+  if (minSc)  leads = leads.filter(l => l.score >= minSc);
+  if (q)      leads = leads.filter(l =>
+    `${l.name} ${l.stadt} ${l.adresse} ${l.website} ${l.telefon} ${l.notiz}`.toLowerCase().includes(q)
+  );
+
+  filtered = leads;
+  applySort();
+}
+
+// ─── SORT ─────────────────────────────────────────────────────────────────────
+function sortBy(col) {
+  if (sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = ['score','bewertung','reviews'].includes(col) ? -1 : 1; }
+  document.querySelectorAll('.sort-arr').forEach(el => el.textContent = '↕');
+  const el = document.getElementById('s-' + col);
+  if (el) el.textContent = sortDir === -1 ? '↓' : '↑';
+  applySort();
+}
+function applySort() {
+  filtered.sort((a, b) => {
+    let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    return va < vb ? -sortDir : va > vb ? sortDir : 0;
+  });
+  render();
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  const tbody = document.getElementById('tbody');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('resultsCount').textContent =
+    `${filtered.length.toLocaleString('de')} von ${LEADS_DATA.length.toLocaleString('de')} Leads`;
+
+  if (!filtered.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const STATUSES = ['Neu','Kontaktiert','In Gespräch','Angebot','Abschluss','Kein Interesse'];
+  const FLAGS    = { CH:'🇨🇭', DE:'🇩🇪', AT:'🇦🇹', FR:'🇫🇷', IT:'🇮🇹' };
+
+  tbody.innerHTML = filtered.map((l, i) => {
+    const pct    = Math.min(100, Math.round(l.score / MAX_SCORE * 100));
+    const scCls  = l.score >= 15 ? 'high' : l.score >= 7 ? 'mid' : 'low';
+    const stCls  = (l.status || 'Neu').replace(/\s/g, '-');
+    const flag   = FLAGS[l.land] || '';
+    const opts   = STATUSES.map(s =>
+      `<option value="${s}"${l.status===s?' selected':''}>${s}</option>`
+    ).join('');
+    const web    = l.website ? l.website.replace(/https?:\/\/(www\.)?/,'').split('/')[0] : '';
+    const stars  = [1,2,3,4,5].map(n =>
+      `<span class="${n <= Math.round(l.bewertung) ? 'star-filled' : 'star-empty'}">★</span>`
+    ).join('');
+
+    return `<tr class="s-${stCls}" id="tr-${esc(l.id)}">
+  <td class="col-rank">${i+1}</td>
+  <td class="col-score">
+    <div class="score-num ${scCls}">${l.score.toFixed(1)}</div>
+    <div class="score-bar"><div class="score-fill" style="width:${pct}%"></div></div>
+  </td>
+  <td class="col-name">
+    ${l.mapsUrl
+      ? `<a class="name-link" href="${esc(l.mapsUrl)}" target="_blank" rel="noopener">${esc(l.name)}</a>`
+      : `<span class="name-link" style="cursor:default">${esc(l.name)}</span>`}
+    <div class="name-sub">${esc(l.adresse || l.stadt || '')}</div>
+  </td>
+  <td><span class="badge badge-${esc(l.branche)}">${esc(l.branche)}</span></td>
+  <td style="white-space:nowrap">${flag} ${esc(l.land||'–')}</td>
+  <td>
+    <div class="stars-row">${stars}</div>
+    <div class="reviews-cnt">${l.bewertung||'–'} · ${l.reviews} Bew.</div>
+  </td>
+  <td class="col-web">
+    ${web ? `<a class="web-link" href="${esc(l.website)}" target="_blank" rel="noopener">↗ ${esc(web)}</a>` : '<span style="color:var(--gray-200)">–</span>'}
+    ${l.telefon ? `<div class="tel-txt">☎ ${esc(l.telefon)}</div>` : ''}
+  </td>
+  <td>
+    <select class="status-sel ss-${stCls}" onchange="onStatusChange('${esc(l.id)}',this)">
+      ${opts}
+    </select>
+  </td>
+  <td>
+    <input type="text" class="kontakt-inp" value="${esc(l.kontaktBy||'')}"
+      placeholder="Kürzel"
+      onchange="onFieldChange('${esc(l.id)}','kontaktBy',this.value)"
+      title="Wer bearbeitet diesen Lead?">
+  </td>
+  <td class="col-notiz">
+    <textarea class="notiz-ta" rows="2" placeholder="Notiz hinzufügen…"
+      oninput="scheduleNotizSave('${esc(l.id)}',this)">${esc(l.notiz||'')}</textarea>
+  </td>
+  <td class="updated-txt">${l.updatedAt ? l.updatedAt.split(',')[0] : '–'}</td>
+</tr>`;
+  }).join('');
+}
+
+// ─── CRM UPDATES ──────────────────────────────────────────────────────────────
+function onStatusChange(id, sel) {
+  const status  = sel.value;
+  const stCls   = status.replace(/\s/g, '-');
+  sel.className = `status-sel ss-${stCls}`;
+  const row     = document.getElementById('tr-' + id);
+  if (row) row.className = `s-${stCls}`;
+
+  const data = { status, kontaktBy: currentUser,
+    updatedAt: new Date().toLocaleString('de-CH') };
+  persistUpdate(id, data);
+  toast('Status gespeichert');
+  updateHeaderStats();
+}
+
+function onFieldChange(id, field, value) {
+  persistUpdate(id, { [field]: value, updatedAt: new Date().toLocaleString('de-CH') });
+}
+
+function scheduleNotizSave(id, ta) {
+  clearTimeout(saveTimers[id]);
+  saveTimers[id] = setTimeout(() => {
+    persistUpdate(id, { notiz: ta.value, updatedAt: new Date().toLocaleString('de-CH') });
+    toast('Notiz gespeichert');
+  }, 1500);
+}
+
+async function persistUpdate(id, data) {
+  // Lokalen State updaten
+  crmState[id] = { ...(crmState[id]||{}), ...data };
+  localStorage.setItem('sg_crm', JSON.stringify(crmState));
+
+  // Remote sichern
+  setSyncIndicator('⟳ Speichert…');
+  try {
+    await fetch(KV_BASE + '/state', {
+      method: 'POST',
+      body: JSON.stringify(crmState),
+    });
+    setSyncIndicator('✓ Synced');
+    setTimeout(() => setSyncIndicator(''), 2000);
+  } catch(e) {
+    setSyncIndicator('⚠ Offline');
+  }
+}
+
+// ─── REMOTE SYNC ──────────────────────────────────────────────────────────────
+async function syncFromRemote() {
+  try {
+    const res = await fetch(KV_BASE + '/state?t=' + Date.now());
+    if (!res.ok) return;
+    const remote = JSON.parse(await res.text());
+    let changed  = false;
+    Object.entries(remote).forEach(([id, v]) => {
+      if (!crmState[id] || v.updatedAt > (crmState[id].updatedAt || '')) {
+        crmState[id] = v;
+        changed = true;
+      }
+    });
+    if (changed) {
+      localStorage.setItem('sg_crm', JSON.stringify(crmState));
+      filterAndRender();
+      updateHeaderStats();
+      setSyncIndicator('↻ Aktualisiert');
+      setTimeout(() => setSyncIndicator(''), 2000);
+    }
+  } catch(e) {}
+}
+
+// ─── HEADER STATS ─────────────────────────────────────────────────────────────
+function updateHeaderStats() {
+  const leads   = getLeads();
+  const total   = leads.length;
+  const byStatus = {};
+  leads.forEach(l => { byStatus[l.status] = (byStatus[l.status]||0)+1; });
+
+  const STATUS_CFG = [
+    { key:'Neu',           color:'#9CA3AF', label:'Neu' },
+    { key:'Kontaktiert',   color:'#3B82F6', label:'Kontaktiert' },
+    { key:'In Gespräch',   color:'#F59E0B', label:'In Gespräch' },
+    { key:'Angebot',       color:'#F97316', label:'Angebot' },
+    { key:'Abschluss',     color:'#22C55E', label:'Abschluss' },
+    { key:'Kein Interesse',color:'#EF4444', label:'Abgelehnt' },
+  ];
+
+  document.getElementById('headerStats').innerHTML =
+    `<div class="h-chip" onclick="clearStatusFilter()" title="Alle anzeigen">
+       <strong>${total.toLocaleString('de')}</strong> <span>Leads</span>
+     </div>` +
+    STATUS_CFG.filter(s => byStatus[s.key]).map(s =>
+      `<div class="h-chip" onclick="setStatusFilter('${s.key}')" title="${s.key} anzeigen">
+         <div class="dot" style="background:${s.color}"></div>
+         <strong>${byStatus[s.key]}</strong> <span>${s.label}</span>
+       </div>`
+    ).join('');
+}
+function setStatusFilter(s) {
+  document.getElementById('fStatus').value = s;
+  filterAndRender();
+}
+function clearStatusFilter() {
+  document.getElementById('fStatus').value = '';
+  filterAndRender();
+}
+
+// ─── USER ─────────────────────────────────────────────────────────────────────
+function openUserModal()  {
+  document.getElementById('nameInput').value = currentUser;
+  document.getElementById('userModal').classList.add('open');
+  setTimeout(() => document.getElementById('nameInput').focus(), 80);
+}
+function closeUserModal() { document.getElementById('userModal').classList.remove('open'); }
+function saveUser() {
+  const v = document.getElementById('nameInput').value.trim();
+  if (!v) return;
+  currentUser = v;
+  localStorage.setItem('sg_user', v);
+  updateUserLabel();
+  closeUserModal();
+  toast('Angemeldet als ' + v);
+}
+function updateUserLabel() {
+  document.getElementById('userLabel').textContent = currentUser || 'Ich';
+}
+document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key==='Enter') saveUser(); });
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeUserModal(); });
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+function exportCsv() {
+  const cols = ['Rang','Score','Name','Branche','Land','Bewertung','Reviews',
+                'Adresse','Stadt','Website','Telefon','Status','Bearbeiter','Notiz','Aktualisiert'];
+  const rows = filtered.map((l,i) => [
+    i+1, l.score, csv(l.name), l.branche, l.land,
+    l.bewertung, l.reviews, csv(l.adresse), csv(l.stadt),
+    l.website, l.telefon, l.status, l.kontaktBy,
+    csv(l.notiz), l.updatedAt
+  ]);
+  const content = '\uFEFF' + [cols, ...rows].map(r => r.join(';')).join('\n');
+  const a = Object.assign(document.createElement('a'), {
+    href: 'data:text/csv;charset=utf-8,' + encodeURIComponent(content),
+    download: `sinnvoll_leads_${new Date().toISOString().slice(0,10)}.csv`
+  });
+  a.click();
+  toast('CSV exportiert (' + filtered.length + ' Einträge)');
+}
+const csv = v => `"${String(v||'').replace(/"/g,'""').replace(/\n/g,' ')}"`;
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+let toastTm;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTm);
+  toastTm = setTimeout(() => el.classList.remove('show'), 2500);
+}
+function setSyncIndicator(msg) {
+  document.getElementById('syncIndicator').textContent = msg;
+}
+
+// ─── START ────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

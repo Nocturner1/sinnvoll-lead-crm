@@ -1,0 +1,4 @@
+node_modules/
+*.log
+crm_data.json
+raw_*.json
