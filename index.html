@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>■● Sinnvoll – Lead CRM</title>
+<!-- SheetJS für Excel-Import -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 /* ─── RESET ────────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -403,6 +405,164 @@ tbody tr.s-Gelöscht { opacity: .35; }
 .toggle-deleted-btn:hover { border-color: var(--text-2); color: var(--text); }
 .toggle-deleted-btn.active { border-color: var(--text); color: var(--text); background: var(--bg-3); }
 
+/* ─── IMPORT BUTTON ────────────────────────────────────────────────────────── */
+.import-btn {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: .03em;
+  transition: background .15s;
+  font-family: inherit;
+}
+.import-btn:hover { background: rgba(255,255,255,.22); }
+
+/* ─── IMPORT MODAL ──────────────────────────────────────────────────────────── */
+.import-modal {
+  background: var(--bg);
+  border: 2px solid var(--text);
+  border-radius: var(--radius);
+  width: 780px;
+  max-width: 96vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.import-modal-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 28px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.import-modal-hd h2 { font-size: 18px; font-weight: 900; color: var(--text); }
+.import-modal-hd .close-btn {
+  background: none; border: none; color: var(--text-2); font-size: 20px;
+  cursor: pointer; line-height: 1; padding: 2px 6px; border-radius: 4px;
+  transition: color .15s;
+}
+.import-modal-hd .close-btn:hover { color: var(--text); }
+.import-body { padding: 24px 28px; overflow-y: auto; flex: 1; }
+.import-footer {
+  padding: 16px 28px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+/* STEPS */
+.import-step { display: none; }
+.import-step.active { display: block; }
+
+/* DROPZONE */
+.import-dropzone {
+  border: 2px dashed var(--border-2);
+  border-radius: var(--radius);
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.import-dropzone:hover, .import-dropzone.dragover {
+  border-color: var(--text);
+  background: var(--bg-2);
+}
+.import-dropzone-icon { font-size: 36px; margin-bottom: 12px; }
+.import-dropzone-title { font-size: 15px; font-weight: 800; margin-bottom: 6px; color: var(--text); }
+.import-dropzone-sub { font-size: 13px; color: var(--text-2); margin-bottom: 18px; }
+.import-select-btn {
+  background: var(--text); color: var(--bg);
+  border: none; border-radius: var(--radius-sm);
+  padding: 9px 20px; font-size: 13px; font-weight: 800;
+  cursor: pointer; font-family: inherit; letter-spacing: .03em;
+  transition: opacity .15s;
+}
+.import-select-btn:hover { opacity: .85; }
+.import-format-hint { font-size: 11px; color: var(--text-3); margin-top: 16px; }
+
+/* FILE INFO */
+.import-file-info {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin-top: 16px;
+}
+.import-file-info.visible { display: flex; }
+.import-file-icon { font-size: 22px; }
+.import-file-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.import-file-size { font-size: 11px; color: var(--text-3); }
+
+/* STEP 2 – MAPPING */
+.import-section-title {
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--text-2); margin-bottom: 10px; margin-top: 20px;
+}
+.import-section-title:first-child { margin-top: 0; }
+.import-defaults-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 4px; }
+.import-defaults-row label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600; color: var(--text-2);
+}
+.import-row-count {
+  background: var(--bg-3); border-radius: 20px; padding: 4px 12px;
+  font-size: 11px; font-weight: 700; color: var(--text-2);
+  display: inline-block; margin-bottom: 16px;
+}
+
+.import-map-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.import-map-table { width: 100%; border-collapse: collapse; min-width: 480px; }
+.import-map-table thead th {
+  background: var(--bg-2); padding: 8px 12px;
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text-3); text-align: left; border-bottom: 1px solid var(--border);
+}
+.import-map-table tbody td {
+  padding: 8px 12px; border-bottom: 1px solid var(--bg-3); vertical-align: middle;
+}
+.import-map-table tbody tr:last-child td { border-bottom: none; }
+.map-col-header { font-size: 12px; font-weight: 700; color: var(--text); white-space: nowrap; }
+.map-col-preview { font-size: 11px; color: var(--text-3); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.preview-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); max-height: 180px; overflow-y: auto; }
+.preview-table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 400px; }
+.preview-table th { background: var(--bg-2); padding: 6px 10px; text-align: left; font-size: 10px; font-weight: 700; color: var(--text-2); white-space: nowrap; position: sticky; top: 0; }
+.preview-table td { padding: 5px 10px; border-bottom: 1px solid var(--bg-3); color: var(--text-2); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* STEP 3 – RESULT */
+.import-result { text-align: center; padding: 24px 0; }
+.import-result-icon { font-size: 52px; margin-bottom: 16px; }
+.import-result h3 { font-size: 22px; font-weight: 900; margin-bottom: 20px; }
+.import-result-stats {
+  display: flex; justify-content: center; gap: 32px; flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+.import-stat-block strong {
+  display: block; font-size: 32px; font-weight: 900; color: var(--text); line-height: 1;
+}
+.import-stat-block span { font-size: 12px; color: var(--text-2); }
+.import-stat-block.green strong { color: #22C55E; }
+
+/* IMPORT SOURCE BADGE in table */
+.source-badge-imp {
+  display: inline-block; font-size: 8px; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--text-3); border: 1px solid var(--border);
+  border-radius: 2px; padding: 1px 4px; margin-right: 4px; vertical-align: middle;
+  background: var(--bg-2);
+}
+
 /* ─── TOAST ────────────────────────────────────────────────────────────────── */
 .toast {
   position: fixed; bottom: 24px; right: 24px; z-index: 9999;
@@ -494,6 +654,7 @@ tbody tr.s-Gelöscht { opacity: .35; }
     <span class="sync-indicator" id="syncIndicator"></span>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Hell/Dunkel wechseln">☀︎</button>
     <button class="user-btn" onclick="openUserModal()">👤 <span id="userLabel">Ich</span></button>
+    <button class="import-btn" onclick="openImportModal()">↑ Import</button>
     <button class="export-btn" onclick="exportCsv()">↓ CSV</button>
   </div>
 </header>
@@ -569,6 +730,116 @@ tbody tr.s-Gelöscht { opacity: .35; }
   </div>
 </div>
 
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="importModal">
+  <div class="import-modal">
+    <div class="import-modal-hd">
+      <h2>Leads importieren</h2>
+      <button class="close-btn" onclick="closeImportModal()">✕</button>
+    </div>
+
+    <!-- ── STEP 1: Datei hochladen ────────────────────── -->
+    <div class="import-body">
+      <div class="import-step active" id="importStep1">
+        <div class="import-dropzone" id="importDropzone"
+             onclick="document.getElementById('importFileInput').click()"
+             ondragover="event.preventDefault();this.classList.add('dragover')"
+             ondragleave="this.classList.remove('dragover')"
+             ondrop="event.preventDefault();this.classList.remove('dragover');onImportFileSelected(event.dataTransfer.files[0])">
+          <div class="import-dropzone-icon">📂</div>
+          <div class="import-dropzone-title">CSV oder Excel-Datei hierher ziehen</div>
+          <div class="import-dropzone-sub">Kontaktlisten, Google-Maps-Exporte, bestehende Leadlisten</div>
+          <button class="import-select-btn" onclick="event.stopPropagation();document.getElementById('importFileInput').click()">Datei auswählen</button>
+          <div class="import-format-hint">Unterstützte Formate: .csv (Semikolon oder Komma), .xlsx, .xls</div>
+        </div>
+        <input type="file" id="importFileInput" accept=".csv,.xlsx,.xls,.txt" style="display:none"
+               onchange="onImportFileSelected(this.files[0])">
+        <div class="import-file-info" id="importFileInfo">
+          <div class="import-file-icon">📄</div>
+          <div>
+            <div class="import-file-name" id="importFileName"></div>
+            <div class="import-file-size" id="importFileSize"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 2: Spalten zuweisen ───────────────── -->
+      <div class="import-step" id="importStep2">
+        <div class="import-section-title">Erkannte Datei</div>
+        <div class="import-row-count" id="importRowCount">–</div>
+
+        <div class="import-section-title">Standard-Werte (wenn Spalte fehlt)</div>
+        <div class="import-defaults-row">
+          <label>Branche:
+            <select class="filter-sel" id="importDefaultBranche">
+              <option value="Sonstige">Sonstige</option>
+              <option value="Reisebüro">Reisebüro</option>
+              <option value="Eventagentur">Eventagentur</option>
+              <option value="Reiseveranstalter">Reiseveranstalter</option>
+              <option value="Busunternehmen">Busunternehmen</option>
+              <option value="MICE-Agentur">MICE-Agentur</option>
+              <option value="Marketingagentur">Marketingagentur</option>
+            </select>
+          </label>
+          <label>Land:
+            <select class="filter-sel" id="importDefaultLand">
+              <option value="CH">🇨🇭 Schweiz</option>
+              <option value="DE">🇩🇪 Deutschland</option>
+              <option value="AT">🇦🇹 Österreich</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="import-section-title">Spalten zuweisen</div>
+        <div class="import-map-wrap">
+          <table class="import-map-table">
+            <thead><tr><th>Spalte in Datei</th><th>Beispielwert</th><th>CRM-Feld</th></tr></thead>
+            <tbody id="importMappingBody"></tbody>
+          </table>
+        </div>
+
+        <div class="import-section-title" style="margin-top:20px">Vorschau (erste 5 Zeilen)</div>
+        <div class="preview-wrap" id="importPreview"></div>
+      </div>
+
+      <!-- ── STEP 3: Ergebnis ────────────────────────── -->
+      <div class="import-step" id="importStep3">
+        <div class="import-result">
+          <div class="import-result-icon">✅</div>
+          <h3>Import abgeschlossen!</h3>
+          <div class="import-result-stats">
+            <div class="import-stat-block green">
+              <strong id="importResultNew">0</strong>
+              <span>Leads importiert</span>
+            </div>
+            <div class="import-stat-block">
+              <strong id="importResultDedup">0</strong>
+              <span>Duplikate übersprungen</span>
+            </div>
+            <div class="import-stat-block">
+              <strong id="importResultSkip">0</strong>
+              <span>Leerzeilen übersprungen</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:center">
+            <button class="btn-secondary" onclick="resetImportModal()">Weitere importieren</button>
+            <button class="btn-primary" onclick="closeImportModal()">Fertig</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="import-footer" id="importFooter">
+      <span style="font-size:12px;color:var(--text-3)" id="importFooterHint">Datei auswählen um fortzufahren</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn-secondary" id="importBackBtn" style="display:none" onclick="showImportStep(1)">← Zurück</button>
+        <button class="btn-primary" id="importDoBtn" style="display:none" onclick="doImport()">Leads importieren</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -619,13 +890,15 @@ async function init() {
   const local = localStorage.getItem('sg_crm');
   if (local) {
     const parsed = JSON.parse(local);
-    // Merge: remote gewinnt bei Konflikten (neuerer updatedAt)
     Object.entries(parsed).forEach(([id, v]) => {
       if (!crmState[id] || v.updatedAt > (crmState[id].updatedAt || '')) {
         crmState[id] = v;
       }
     });
   }
+
+  // Importierte Leads laden
+  await loadImportedLeads();
 
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('mainTable').style.display = 'table';
@@ -649,7 +922,7 @@ function updateDeletedToggleLabel() {
 
 // ─── LEADS MIT CRM-STATE MERGEN ───────────────────────────────────────────────
 function getLeads() {
-  return LEADS_DATA.map(l => ({
+  return [...LEADS_DATA, ...importedLeads].map(l => ({
     ...l,
     status:    crmState[l.id]?.status    || 'Neu',
     notiz:     crmState[l.id]?.notiz     || '',
@@ -717,8 +990,9 @@ function applySort() {
 function render() {
   const tbody = document.getElementById('tbody');
   const empty = document.getElementById('emptyState');
+  const totalLeads = LEADS_DATA.length + importedLeads.length;
   document.getElementById('resultsCount').textContent =
-    `${filtered.length.toLocaleString('de')} von ${LEADS_DATA.length.toLocaleString('de')} Leads`;
+    `${filtered.length.toLocaleString('de')} von ${totalLeads.toLocaleString('de')} Leads`;
 
   if (!filtered.length) {
     tbody.innerHTML = '';
@@ -751,8 +1025,8 @@ function render() {
   </td>
   <td class="col-name">
     ${l.mapsUrl
-      ? `<a class="name-link" href="${esc(l.mapsUrl)}" target="_blank" rel="noopener">${esc(l.name)}</a>`
-      : `<span class="name-link" style="cursor:default">${esc(l.name)}</span>`}
+      ? `<a class="name-link" href="${esc(l.mapsUrl)}" target="_blank" rel="noopener">${l.source==='import'?'<span class="source-badge-imp">IMP</span>':''}${esc(l.name)}</a>`
+      : `<span class="name-link" style="cursor:default">${l.source==='import'?'<span class="source-badge-imp">IMP</span>':''}${esc(l.name)}</span>`}
     <div class="name-sub">${esc(l.adresse || l.stadt || '')}</div>
   </td>
   <td><span class="badge badge-${esc(l.branche)}">${esc(l.branche)}</span></td>
@@ -882,6 +1156,27 @@ async function syncFromRemote() {
       setSyncIndicator('↻ Aktualisiert');
       setTimeout(() => setSyncIndicator(''), 2000);
     }
+
+    // Importierte Leads sync
+    try {
+      const impRes = await fetch(KV_BASE + '/importedLeads?t=' + Date.now());
+      if (impRes.ok) {
+        const impText = await impRes.text();
+        if (impText) {
+          const remoteImp = JSON.parse(impText);
+          const localMap  = Object.fromEntries(importedLeads.map(l => [l.id, l]));
+          const remoteMap = Object.fromEntries(remoteImp.map(l => [l.id, l]));
+          const merged = { ...localMap, ...remoteMap };
+          const newList = Object.values(merged);
+          if (newList.length !== importedLeads.length) {
+            importedLeads = newList;
+            localStorage.setItem('sg_imported_leads', JSON.stringify(importedLeads));
+            filterAndRender();
+            updateHeaderStats();
+          }
+        }
+      }
+    } catch(_) {}
   } catch(e) {}
 }
 
@@ -976,6 +1271,321 @@ function toast(msg) {
 }
 function setSyncIndicator(msg) {
   document.getElementById('syncIndicator').textContent = msg;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// IMPORT-FEATURE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let importedLeads   = [];
+let _impRows        = [];    // rohe Zeilen aus aktueller Datei
+let _impHeaders     = [];    // Header-Zeile
+let _impMappings    = {};    // columnIndex → fieldName
+
+const IMPORT_FIELDS = [
+  { v:'__skip__',  l:'— nicht importieren —' },
+  { v:'name',      l:'Unternehmensname *' },
+  { v:'adresse',   l:'Adresse / Strasse' },
+  { v:'stadt',     l:'Stadt / Ort' },
+  { v:'land',      l:'Land (CH / DE)' },
+  { v:'branche',   l:'Branche / Kategorie' },
+  { v:'bewertung', l:'Google Bewertung (0–5)' },
+  { v:'reviews',   l:'Anzahl Bewertungen' },
+  { v:'website',   l:'Website URL' },
+  { v:'telefon',   l:'Telefon' },
+  { v:'email',     l:'E-Mail' },
+  { v:'mapsUrl',   l:'Google Maps URL' },
+  { v:'notiz',     l:'Notiz (direkt ins CRM)' },
+];
+
+const FIELD_HINTS = {
+  name:      ['name','firma','company','unternehmen','organisation','betrieb'],
+  adresse:   ['adresse','address','strasse','straße','street','anschrift'],
+  stadt:     ['stadt','city','ort','location','standort','place','gemeinde'],
+  land:      ['land','country','nation','staat'],
+  branche:   ['branche','category','kategorie','typ','type','industrie','sektor','branche'],
+  bewertung: ['bewertung','rating','stars','sterne','note','google rat'],
+  reviews:   ['review','bewertung','rezension','anzahl','count','stimmen'],
+  website:   ['website','url','homepage','web','internet','link','http'],
+  telefon:   ['telefon','phone','tel.','fon','mobile','handy','nummer','mobil'],
+  email:     ['email','e-mail','mail','@','kontakt@'],
+  mapsUrl:   ['maps','google maps','place url','gmaps'],
+  notiz:     ['notiz','note','kommentar','comment','bemerkung','anmerkung','info'],
+};
+
+function _autoField(header) {
+  const h = header.toLowerCase().trim();
+  // email: check for '@' in column name
+  if (h.includes('mail') || h.includes('@')) return 'email';
+  for (const [field, hints] of Object.entries(FIELD_HINTS)) {
+    if (hints.some(hint => h.includes(hint))) return field;
+  }
+  return '__skip__';
+}
+
+function _normLand(v) {
+  if (!v) return '';
+  const s = v.toLowerCase().trim();
+  if (['ch','schweiz','swiss','switzerland'].some(x => s.includes(x))) return 'CH';
+  if (['de','deutschland','germany','german'].some(x => s.includes(x))) return 'DE';
+  if (['at','österreich','austria','oesterreich'].some(x => s.includes(x))) return 'AT';
+  if (['fr','frankreich','france'].some(x => s.includes(x))) return 'FR';
+  if (v.length === 2) return v.toUpperCase();
+  return v.slice(0,2).toUpperCase();
+}
+
+function _normBranche(v) {
+  if (!v) return null;
+  const s = v.toLowerCase();
+  if (s.includes('mice')) return 'MICE-Agentur';
+  if (s.includes('event')) return 'Eventagentur';
+  if (s.includes('bus')) return 'Busunternehmen';
+  if (s.includes('reisebüro') || s.includes('reiseburo') || s.includes('travel agent') || s.includes('reisebuero')) return 'Reisebüro';
+  if (s.includes('reiseveranstalter') || s.includes('tour op') || s.includes('veranstalter')) return 'Reiseveranstalter';
+  if (s.includes('marketing')) return 'Marketingagentur';
+  return null; // will fall back to default
+}
+
+function _scoreImp(lead) {
+  const r = parseFloat(lead.bewertung) || 0;
+  const n = parseInt(lead.reviews) || 0;
+  if (r > 0) {
+    const w = r * (n > 0 ? Math.log10(n + 1) : 0.1) * (lead.website ? 1.5 : 0.8) * (lead.telefon ? 1.2 : 1.0);
+    return parseFloat(w.toFixed(2));
+  }
+  return 5.0;
+}
+
+// CSV-Parser (Semikolon oder Komma, mit Anführungszeichen)
+function _parseCsv(text) {
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l => l.trim());
+  if (!lines.length) return [];
+  const sep = (lines[0].match(/;/g)||[]).length >= (lines[0].match(/,/g)||[]).length ? ';' : ',';
+  return lines.map(line => {
+    const cols = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { if (inQ && line[i+1]==='"') { cur+='"'; i++; } else inQ=!inQ; }
+      else if (ch === sep && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
+
+function _parseFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    const ext = file.name.split('.').pop().toLowerCase();
+    reader.onload = (e) => {
+      try {
+        if (ext === 'xlsx' || ext === 'xls') {
+          if (!window.XLSX) { reject(new Error('Excel-Bibliothek noch nicht geladen – kurz warten und nochmal versuchen.')); return; }
+          const wb  = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+          const ws  = wb.Sheets[wb.SheetNames[0]];
+          resolve(XLSX.utils.sheet_to_json(ws, { header:1, defval:'' }));
+        } else {
+          resolve(_parseCsv(e.target.result));
+        }
+      } catch(err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Datei konnte nicht gelesen werden'));
+    if (ext === 'xlsx' || ext === 'xls') reader.readAsArrayBuffer(file);
+    else reader.readAsText(file, 'utf-8');
+  });
+}
+
+// ── Import-Modal-Steuerung ────────────────────────────────────────────────────
+function openImportModal() {
+  document.getElementById('importModal').classList.add('open');
+  showImportStep(1);
+}
+function closeImportModal() {
+  document.getElementById('importModal').classList.remove('open');
+}
+function resetImportModal() {
+  _impRows=[]; _impHeaders=[]; _impMappings={};
+  document.getElementById('importFileInput').value = '';
+  document.getElementById('importFileInfo').classList.remove('visible');
+  showImportStep(1);
+}
+
+function showImportStep(n) {
+  document.querySelectorAll('.import-step').forEach((el,i) => el.classList.toggle('active', i+1===n));
+  const backBtn = document.getElementById('importBackBtn');
+  const doBtn   = document.getElementById('importDoBtn');
+  const hint    = document.getElementById('importFooterHint');
+  backBtn.style.display = n===2 ? '' : 'none';
+  doBtn.style.display   = n===2 ? '' : 'none';
+  hint.style.display    = n===2 ? 'none' : '';
+  if (n===1) hint.textContent = 'Datei auswählen um fortzufahren';
+}
+
+async function onImportFileSelected(file) {
+  if (!file) return;
+  document.getElementById('importFileName').textContent = file.name;
+  document.getElementById('importFileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+  document.getElementById('importFileInfo').classList.add('visible');
+
+  try {
+    const rows = await _parseFile(file);
+    if (rows.length < 2) { alert('Die Datei enthält keine Daten (mindestens 1 Kopfzeile + 1 Datenzeile nötig).'); return; }
+    _impHeaders = rows[0].map(String);
+    _impRows    = rows.slice(1).filter(r => r.some(c => String(c||'').trim() !== ''));
+
+    // Auto-Mapping
+    _impMappings = {};
+    _impHeaders.forEach((h,i) => { _impMappings[i] = _autoField(h); });
+
+    _buildMappingUI();
+    _buildPreviewUI();
+    showImportStep(2);
+  } catch(err) {
+    alert('Fehler beim Lesen: ' + err.message);
+  }
+}
+
+function _buildMappingUI() {
+  const opts = IMPORT_FIELDS.map(f =>
+    `<option value="${f.v}">${f.l}</option>`
+  ).join('');
+
+  document.getElementById('importMappingBody').innerHTML = _impHeaders.map((h, i) => {
+    const sel = _impMappings[i] || '__skip__';
+    const prev = _impRows.slice(0,2).map(r => esc(String(r[i]||''))).filter(Boolean).join(' / ') || '–';
+    const selOpts = opts.replace(`value="${sel}"`, `value="${sel}" selected`);
+    return `<tr>
+      <td class="map-col-header">${esc(h)}</td>
+      <td class="map-col-preview" title="${esc(prev)}">${esc(prev.length>40?prev.slice(0,38)+'…':prev)}</td>
+      <td><select class="filter-sel" style="min-width:200px" onchange="_impMappings[${i}]=this.value">${selOpts}</select></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('importRowCount').textContent =
+    `${_impRows.length.toLocaleString('de')} Zeilen erkannt · ${_impHeaders.length} Spalten`;
+}
+
+function _buildPreviewUI() {
+  const maxR = Math.min(5, _impRows.length);
+  const thead = `<tr>${_impHeaders.map(h => `<th>${esc(h)}</th>`).join('')}</tr>`;
+  const tbody = _impRows.slice(0, maxR).map(row =>
+    `<tr>${row.map(c => `<td>${esc(String(c||''))}</td>`).join('')}</tr>`
+  ).join('');
+  document.getElementById('importPreview').innerHTML =
+    `<table class="preview-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+}
+
+async function doImport() {
+  const hasName = Object.values(_impMappings).includes('name');
+  if (!hasName) { alert('Bitte die Spalte "Unternehmensname *" zuweisen.'); return; }
+
+  const btn = document.getElementById('importDoBtn');
+  btn.textContent = 'Importiere…'; btn.disabled = true;
+
+  const defBranche = document.getElementById('importDefaultBranche').value;
+  const defLand    = document.getElementById('importDefaultLand').value;
+
+  // Reverse map: field → colIndex
+  const f2c = {};
+  Object.entries(_impMappings).forEach(([col, field]) => { if(field!=='__skip__') f2c[field]=parseInt(col); });
+  const gv = (row, field) => { const c=f2c[field]; return c!==undefined ? String(row[c]||'').trim() : ''; };
+
+  const ts = Date.now();
+  let newLeads = [], skipped = 0;
+
+  _impRows.forEach((row, i) => {
+    const name = gv(row,'name');
+    if (!name) { skipped++; return; }
+    const rawLand    = gv(row,'land');
+    const rawBranche = gv(row,'branche');
+    const lead = {
+      id:        `imp_${ts}_${i}`,
+      source:    'import',
+      name,
+      adresse:   gv(row,'adresse'),
+      stadt:     gv(row,'stadt'),
+      land:      rawLand ? _normLand(rawLand) : defLand,
+      branche:   _normBranche(rawBranche) || defBranche,
+      bewertung: parseFloat(gv(row,'bewertung')) || 0,
+      reviews:   parseInt(gv(row,'reviews'))   || 0,
+      website:   gv(row,'website'),
+      telefon:   gv(row,'telefon'),
+      mapsUrl:   gv(row,'mapsUrl'),
+      email:     gv(row,'email'),
+    };
+    lead.score = _scoreImp(lead);
+
+    // Notiz → direkt in crmState
+    const notiz = gv(row,'notiz');
+    if (notiz) {
+      crmState[lead.id] = {
+        ...(crmState[lead.id]||{}), notiz,
+        updatedAt: new Date().toLocaleString('de-CH'),
+      };
+    }
+    newLeads.push(lead);
+  });
+
+  // Deduplication by website domain OR name+stadt
+  const getDomain = l => l.website ? l.website.replace(/https?:\/\/(www\.)?/i,'').split('/')[0].toLowerCase() : null;
+  const getKey    = l => `${l.name.toLowerCase().trim()}||${(l.stadt||'').toLowerCase().trim()}`;
+
+  const existDomains = new Set([...LEADS_DATA,...importedLeads].map(getDomain).filter(Boolean));
+  const existKeys    = new Set([...LEADS_DATA,...importedLeads].map(getKey));
+
+  let deduped = 0;
+  newLeads = newLeads.filter(l => {
+    const dom = getDomain(l), key = getKey(l);
+    if ((dom && existDomains.has(dom)) || existKeys.has(key)) { deduped++; return false; }
+    if (dom) existDomains.add(dom);
+    existKeys.add(key);
+    return true;
+  });
+
+  importedLeads = [...importedLeads, ...newLeads];
+
+  // Speichern
+  setSyncIndicator('⟳ Speichert…');
+  localStorage.setItem('sg_imported_leads', JSON.stringify(importedLeads));
+  localStorage.setItem('sg_crm', JSON.stringify(crmState));
+  try {
+    await Promise.all([
+      fetch(KV_BASE + '/importedLeads', { method:'POST', body:JSON.stringify(importedLeads) }),
+      fetch(KV_BASE + '/state',         { method:'POST', body:JSON.stringify(crmState) }),
+    ]);
+    setSyncIndicator('✓ Synced');
+    setTimeout(() => setSyncIndicator(''), 2000);
+  } catch(_) { setSyncIndicator('⚠ Offline'); }
+
+  filterAndRender();
+  updateHeaderStats();
+  updateDeletedToggleLabel();
+
+  document.getElementById('importResultNew').textContent    = newLeads.length.toLocaleString('de');
+  document.getElementById('importResultDedup').textContent  = deduped.toLocaleString('de');
+  document.getElementById('importResultSkip').textContent   = skipped.toLocaleString('de');
+  btn.textContent = 'Leads importieren'; btn.disabled = false;
+  showImportStep(3);
+}
+
+// Importierte Leads laden (init + remote sync)
+async function loadImportedLeads() {
+  const local = localStorage.getItem('sg_imported_leads');
+  if (local) { try { importedLeads = JSON.parse(local); } catch(_) {} }
+  try {
+    const res = await fetch(KV_BASE + '/importedLeads');
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text !== 'null') {
+        const remote   = JSON.parse(text);
+        const localMap = Object.fromEntries(importedLeads.map(l => [l.id, l]));
+        const remMap   = Object.fromEntries(remote.map(l => [l.id, l]));
+        importedLeads  = Object.values({ ...localMap, ...remMap });
+        localStorage.setItem('sg_imported_leads', JSON.stringify(importedLeads));
+      }
+    }
+  } catch(_) {}
 }
 
 // ─── STICKY OFFSET – zuverlässig mit ResizeObserver ──────────────────────────
