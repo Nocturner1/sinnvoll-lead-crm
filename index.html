@@ -856,12 +856,34 @@ tbody tr.s-Gelöscht { opacity: .35; }
   </div>
 </div>
 
+<!-- ► Railway API-URL hier eintragen (nach dem Deploy auf Railway) ◄ -->
+<script>
+  window.RAILWAY_API_BASE = '';   // z.B. 'https://sinnvoll-crm-api.railway.app'
+</script>
 <script src="leads_data.js"></script>
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-const KV_BUCKET = '9etvhexcvoi6NxBy2Yxdh7';
-const KV_BASE   = `https://kvdb.io/${KV_BUCKET}`;
+// Railway API-URL: nach dem Deploy auf Railway hier eintragen
+// (ohne abschliessenden Slash, z.B. https://sinnvoll-crm-api.railway.app)
+const API_BASE  = (window.RAILWAY_API_BASE || '').replace(/\/$/, '');
 const MAX_SCORE = 30;
+
+// Prüft ob Railway konfiguriert ist; fällt sonst auf localStorage zurück
+function apiAvailable() { return !!API_BASE; }
+
+// Einheitliche fetch-Wrapper mit Content-Type
+function apiGet(path) {
+  if (!apiAvailable()) return Promise.reject(new Error('no-api'));
+  return fetch(API_BASE + path + '?t=' + Date.now());
+}
+function apiPost(path, body) {
+  if (!apiAvailable()) return Promise.reject(new Error('no-api'));
+  return fetch(API_BASE + path, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body),
+  });
+}
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let crmState    = {};          // id → { status, notiz, kontaktBy, updatedAt }
@@ -877,14 +899,11 @@ async function init() {
   updateUserLabel();
   if (!currentUser) openUserModal();
 
-  // CRM-State laden
+  // CRM-State laden (Railway → localStorage-Fallback)
   try {
-    const res = await fetch(KV_BASE + '/state');
-    if (res.ok) {
-      const text = await res.text();
-      crmState = text ? JSON.parse(text) : {};
-    }
-  } catch(e) { console.warn('KV offline, nutze localStorage:', e); }
+    const res = await apiGet('/api/crm');
+    if (res.ok) crmState = await res.json();
+  } catch(e) { console.warn('API nicht erreichbar, nutze localStorage:', e.message); }
 
   // localStorage als Fallback / Merge
   const local = localStorage.getItem('sg_crm');
@@ -1122,62 +1141,57 @@ async function persistUpdate(id, data) {
   crmState[id] = { ...(crmState[id]||{}), ...data };
   localStorage.setItem('sg_crm', JSON.stringify(crmState));
 
-  // Remote sichern
+  // Railway: nur den geänderten Lead senden (effizient)
   setSyncIndicator('⟳ Speichert…');
   try {
-    await fetch(KV_BASE + '/state', {
-      method: 'POST',
-      body: JSON.stringify(crmState),
-    });
+    const res = await apiPost(`/api/crm/${encodeURIComponent(id)}`, crmState[id]);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     setSyncIndicator('✓ Synced');
     setTimeout(() => setSyncIndicator(''), 2000);
   } catch(e) {
-    setSyncIndicator('⚠ Offline');
+    setSyncIndicator(e.message === 'no-api' ? '⚠ Lokal' : '⚠ Offline');
   }
 }
 
 // ─── REMOTE SYNC ──────────────────────────────────────────────────────────────
 async function syncFromRemote() {
+  if (!apiAvailable()) return;
   try {
-    const res = await fetch(KV_BASE + '/state?t=' + Date.now());
-    if (!res.ok) return;
-    const remote = JSON.parse(await res.text());
-    let changed  = false;
-    Object.entries(remote).forEach(([id, v]) => {
-      if (!crmState[id] || v.updatedAt > (crmState[id].updatedAt || '')) {
-        crmState[id] = v;
-        changed = true;
+    // CRM-State sync
+    const res = await apiGet('/api/crm');
+    if (res.ok) {
+      const remote = await res.json();
+      let changed = false;
+      Object.entries(remote).forEach(([id, v]) => {
+        if (!crmState[id] || v.updatedAt > (crmState[id].updatedAt || '')) {
+          crmState[id] = v;
+          changed = true;
+        }
+      });
+      if (changed) {
+        localStorage.setItem('sg_crm', JSON.stringify(crmState));
+        filterAndRender();
+        updateHeaderStats();
+        setSyncIndicator('↻ Aktualisiert');
+        setTimeout(() => setSyncIndicator(''), 2000);
       }
-    });
-    if (changed) {
-      localStorage.setItem('sg_crm', JSON.stringify(crmState));
-      filterAndRender();
-      updateHeaderStats();
-      setSyncIndicator('↻ Aktualisiert');
-      setTimeout(() => setSyncIndicator(''), 2000);
     }
 
     // Importierte Leads sync
-    try {
-      const impRes = await fetch(KV_BASE + '/importedLeads?t=' + Date.now());
-      if (impRes.ok) {
-        const impText = await impRes.text();
-        if (impText) {
-          const remoteImp = JSON.parse(impText);
-          const localMap  = Object.fromEntries(importedLeads.map(l => [l.id, l]));
-          const remoteMap = Object.fromEntries(remoteImp.map(l => [l.id, l]));
-          const merged = { ...localMap, ...remoteMap };
-          const newList = Object.values(merged);
-          if (newList.length !== importedLeads.length) {
-            importedLeads = newList;
-            localStorage.setItem('sg_imported_leads', JSON.stringify(importedLeads));
-            filterAndRender();
-            updateHeaderStats();
-          }
-        }
+    const impRes = await apiGet('/api/imported');
+    if (impRes.ok) {
+      const remoteImp = await impRes.json();
+      const localMap  = Object.fromEntries(importedLeads.map(l => [l.id, l]));
+      const remoteMap = Object.fromEntries(remoteImp.map(l => [l.id, l]));
+      const newList   = Object.values({ ...localMap, ...remoteMap });
+      if (newList.length !== importedLeads.length) {
+        importedLeads = newList;
+        localStorage.setItem('sg_imported_leads', JSON.stringify(importedLeads));
+        filterAndRender();
+        updateHeaderStats();
       }
-    } catch(_) {}
-  } catch(e) {}
+    }
+  } catch(e) { /* Offline – kein Problem */ }
 }
 
 // ─── HEADER STATS ─────────────────────────────────────────────────────────────
@@ -1545,18 +1559,18 @@ async function doImport() {
 
   importedLeads = [...importedLeads, ...newLeads];
 
-  // Speichern
+  // Speichern – lokal + Railway
   setSyncIndicator('⟳ Speichert…');
   localStorage.setItem('sg_imported_leads', JSON.stringify(importedLeads));
   localStorage.setItem('sg_crm', JSON.stringify(crmState));
   try {
     await Promise.all([
-      fetch(KV_BASE + '/importedLeads', { method:'POST', body:JSON.stringify(importedLeads) }),
-      fetch(KV_BASE + '/state',         { method:'POST', body:JSON.stringify(crmState) }),
+      apiPost('/api/imported', importedLeads),
+      apiPost('/api/crm',     crmState),
     ]);
     setSyncIndicator('✓ Synced');
     setTimeout(() => setSyncIndicator(''), 2000);
-  } catch(_) { setSyncIndicator('⚠ Offline'); }
+  } catch(_) { setSyncIndicator('⚠ Lokal gespeichert'); }
 
   filterAndRender();
   updateHeaderStats();
@@ -1569,21 +1583,18 @@ async function doImport() {
   showImportStep(3);
 }
 
-// Importierte Leads laden (init + remote sync)
+// Importierte Leads laden (Railway → localStorage-Fallback)
 async function loadImportedLeads() {
   const local = localStorage.getItem('sg_imported_leads');
   if (local) { try { importedLeads = JSON.parse(local); } catch(_) {} }
   try {
-    const res = await fetch(KV_BASE + '/importedLeads');
+    const res = await apiGet('/api/imported');
     if (res.ok) {
-      const text = await res.text();
-      if (text && text !== 'null') {
-        const remote   = JSON.parse(text);
-        const localMap = Object.fromEntries(importedLeads.map(l => [l.id, l]));
-        const remMap   = Object.fromEntries(remote.map(l => [l.id, l]));
-        importedLeads  = Object.values({ ...localMap, ...remMap });
-        localStorage.setItem('sg_imported_leads', JSON.stringify(importedLeads));
-      }
+      const remote   = await res.json();
+      const localMap = Object.fromEntries(importedLeads.map(l => [l.id, l]));
+      const remMap   = Object.fromEntries(remote.map(l => [l.id, l]));
+      importedLeads  = Object.values({ ...localMap, ...remMap });
+      localStorage.setItem('sg_imported_leads', JSON.stringify(importedLeads));
     }
   } catch(_) {}
 }
